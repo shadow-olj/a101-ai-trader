@@ -119,8 +119,8 @@ export default function LandingPage({ onEnter }: LandingPageProps) {
           <div className="container mx-auto px-4">
             <div className="flex items-center justify-between h-16">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-[#f0b90b] to-[#f8d12f] rounded-lg flex items-center justify-center shadow-lg shadow-[#f0b90b]/20">
-                  <Activity className="w-6 h-6 text-black" />
+                <div className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center bg-white">
+                  <Image src="/A101.png" alt="A101" width={48} height={48} className="object-cover" />
                 </div>
                 <div>
                   <h1 className="text-lg font-bold text-white tracking-tight">A101 AI Trader</h1>
@@ -417,11 +417,11 @@ export default function LandingPage({ onEnter }: LandingPageProps) {
                   <div className="inline-flex items-center gap-3 group hover:scale-110 transition-transform duration-300">
                     <div className="w-12 h-12 bg-black rounded-lg flex items-center justify-center shadow-lg group-hover:shadow-[#f0b90b]/50 transition-shadow p-2 border border-[#f0b90b]/20">
                       <Image 
-                        src="/asterdex-icon.png" 
-                        alt="AsterDEX" 
-                        width={32} 
-                        height={32}
-                        className="w-full h-full object-contain"
+                        src="/A101.png" 
+                        alt="A101" 
+                        width={48} 
+                        height={48}
+                        className="w-full h-full object-cover rounded-full"
                       />
                     </div>
                     <div className="text-left">
@@ -501,11 +501,11 @@ export default function LandingPage({ onEnter }: LandingPageProps) {
                   <div className="inline-flex items-center gap-3 group hover:scale-110 transition-transform duration-300">
                     <div className="w-12 h-12 bg-black rounded-lg flex items-center justify-center shadow-lg group-hover:shadow-[#f0b90b]/50 transition-shadow p-2 border border-[#f0b90b]/20">
                       <Image 
-                        src="/asterdex-icon.png" 
-                        alt="AsterDEX" 
-                        width={32} 
-                        height={32}
-                        className="w-full h-full object-contain"
+                        src="/A101.png" 
+                        alt="A101" 
+                        width={48} 
+                        height={48}
+                        className="w-full h-full object-cover rounded-full"
                       />
                     </div>
                     <div className="text-left">

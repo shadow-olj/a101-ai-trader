@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import CommandInput from '@/components/CommandInput'
 import PositionsList from '@/components/PositionsList'
 import BalanceCard from '@/components/BalanceCard'
@@ -242,8 +243,8 @@ export default function Home() {
             {/* Left - Logo & Title */}
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-[#f0b90b] to-[#f8d12f] rounded-lg flex items-center justify-center shadow-lg shadow-[#f0b90b]/20">
-                  <Activity className="w-6 h-6 text-black" />
+                <div className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center bg-white">
+                  <Image src="/A101.png" alt="A101" width={48} height={48} className="object-cover" />
                 </div>
                 <div>
                   <h1 className="text-lg font-bold text-white tracking-tight">A101 AI Trader</h1>
