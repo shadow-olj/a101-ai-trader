@@ -10,7 +10,7 @@ An AI-powered cryptocurrency trading assistant for AsterDEX, featuring intellige
 ## ✨ Features
 
 ### 🤖 AI Market Prediction
-- **Multi-Model Support**: GPT-5, Claude Sonnet 4.5, Gemini 2.5 Pro (coming soon)
+- **Multi-Model Support**: GPT-5, Qwen Max, DeepSeek Chat (Claude Sonnet 4.5 & Gemini 2.5 Pro coming soon)
 - **Real-time Analysis**: AI-driven market trend predictions (Bullish/Bearish/Neutral)
 - **Confidence Scoring**: Get prediction confidence levels (0-100%)
 - **Price Targets**: 24-hour high/low price forecasts
@@ -81,7 +81,8 @@ An AI-powered cryptocurrency trading assistant for AsterDEX, featuring intellige
 - Node.js 18+ and npm
 - Python 3.10+
 - AsterDEX API credentials
-- OpenAI API key
+- OpenAI API key (for GPT-5)
+- Optional: Qwen Max API key, DeepSeek Chat API key
 
 ### Backend Setup
 
@@ -165,12 +166,13 @@ The application will be available at `http://localhost:3000`
 2. **Configure API Keys**
    - Click the Settings icon in the top-right corner
    - Enter your AsterDEX API credentials
-   - Enter your OpenAI API key
+   - (Optional) Enter your OpenAI API key for GPT-5 features
+   - (Optional) Enter your Qwen Max or DeepSeek Chat API keys for additional model support
    - Click "Save Settings"
 
 3. **Use AI Market Prediction**
    - Select a cryptocurrency (BTC, ETH, BNB, SOL)
-   - Choose AI model (GPT-5)
+   - Choose an AI model (GPT-5, Qwen Max, DeepSeek Chat)
    - Click "Analyze Market"
    - View prediction results with confidence scores
 
@@ -198,10 +200,12 @@ The application will be available at `http://localhost:3000`
 └─────────────────────────────────────────────┘
                    │
                    ↓
-┌──────────────────┬──────────────────────────┐
-│   OpenAI API     │      AsterDEX API        │
-│   (GPT Models)   │   (Trading Exchange)     │
-└──────────────────┴──────────────────────────┘
+┌──────────────────┬──────────────────┬──────────────────────────┐
+│   OpenAI API     │   Qwen Max API   │      AsterDEX API        │
+│   (GPT-5)        │   (Alibaba Cloud)│   (Trading Exchange)     │
+└──────────────────┴──────────────────┴──────────────────────────┘
+             │
+             └────── DeepSeek Chat API (Model Provider)
 ```
 
 ## 🎨 UI Layout

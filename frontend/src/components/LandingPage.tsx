@@ -59,7 +59,7 @@ export default function LandingPage({ onEnter }: LandingPageProps) {
     {
       icon: Sparkles,
       title: 'AI Market Prediction',
-      description: 'Multi-model AI analysis with GPT-5, Claude Sonnet 4.5 & Gemini 2.5 Pro'
+      description: 'Multi-model AI analysis with GPT-5, Qwen Max & DeepSeek Chat'
     },
     {
       icon: Bot,
@@ -281,32 +281,32 @@ export default function LandingPage({ onEnter }: LandingPageProps) {
                       </div>
                     </div>
 
-                    <div className="bg-[#CC785C]/10 border border-[#CC785C]/30 rounded-xl p-4 hover:bg-[#CC785C]/15 transition-all">
+                    <div className="bg-[#1a73e8]/10 border border-[#1a73e8]/30 rounded-xl p-4 hover:bg-[#1a73e8]/15 transition-all">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-[#CC785C] rounded-lg flex items-center justify-center flex-shrink-0">
-                          <span className="text-white font-bold text-sm">C4.5</span>
+                        <div className="w-10 h-10 bg-[#1a73e8] rounded-lg flex items-center justify-center flex-shrink-0">
+                          <span className="text-white font-bold text-sm">DS</span>
                         </div>
                         <div className="flex-1">
-                          <h4 className="text-white font-semibold text-sm">Claude Sonnet 4.5</h4>
-                          <p className="text-[#CC785C] text-xs">Superior analytical depth</p>
+                          <h4 className="text-white font-semibold text-sm">DeepSeek Chat</h4>
+                          <p className="text-[#1a73e8] text-xs">Mathematical reasoning</p>
                         </div>
-                        <div className="px-3 py-1 bg-[#2b3139] rounded-full">
-                          <span className="text-slate-400 text-xs font-bold">SOON</span>
+                        <div className="px-3 py-1 bg-[#0ecb81] rounded-full">
+                          <span className="text-black text-xs font-bold">ACTIVE</span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="bg-[#4285F4]/10 border border-[#4285F4]/30 rounded-xl p-4 hover:bg-[#4285F4]/15 transition-all">
+                    <div className="bg-[#ff6a00]/10 border border-[#ff6a00]/30 rounded-xl p-4 hover:bg-[#ff6a00]/15 transition-all">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-[#4285F4] rounded-lg flex items-center justify-center flex-shrink-0">
-                          <span className="text-white font-bold text-sm">G2.5</span>
+                        <div className="w-10 h-10 bg-[#ff6a00] rounded-lg flex items-center justify-center flex-shrink-0">
+                          <span className="text-white font-bold text-sm">QW</span>
                         </div>
                         <div className="flex-1">
-                          <h4 className="text-white font-semibold text-sm">Gemini 2.5 Pro</h4>
-                          <p className="text-[#4285F4] text-xs">Advanced multi-modal AI</p>
+                          <h4 className="text-white font-semibold text-sm">Qwen Max</h4>
+                          <p className="text-[#ff6a00] text-xs">Chinese market expert</p>
                         </div>
-                        <div className="px-3 py-1 bg-[#2b3139] rounded-full">
-                          <span className="text-slate-400 text-xs font-bold">SOON</span>
+                        <div className="px-3 py-1 bg-[#0ecb81] rounded-full">
+                          <span className="text-black text-xs font-bold">ACTIVE</span>
                         </div>
                       </div>
                     </div>
@@ -417,11 +417,11 @@ export default function LandingPage({ onEnter }: LandingPageProps) {
                   <div className="inline-flex items-center gap-3 group hover:scale-110 transition-transform duration-300">
                     <div className="w-12 h-12 bg-black rounded-lg flex items-center justify-center shadow-lg group-hover:shadow-[#f0b90b]/50 transition-shadow p-2 border border-[#f0b90b]/20">
                       <Image 
-                        src="/A101.png" 
-                        alt="A101" 
-                        width={48} 
-                        height={48}
-                        className="w-full h-full object-cover rounded-full"
+                        src="/asterdex-icon.png" 
+                        alt="AsterDEX" 
+                        width={32} 
+                        height={32}
+                        className="w-full h-full object-contain"
                       />
                     </div>
                     <div className="text-left">
@@ -432,38 +432,38 @@ export default function LandingPage({ onEnter }: LandingPageProps) {
                   
                   <div className="text-2xl text-slate-600">×</div>
                   
-                  {/* Claude */}
+                  {/* Qwen */}
                   <div className="inline-flex items-center gap-3 group hover:scale-110 transition-transform duration-300">
-                    <div className="w-12 h-12 bg-black rounded-lg flex items-center justify-center shadow-lg group-hover:shadow-[#CC785C]/50 transition-shadow p-2 border border-[#CC785C]/20">
+                    <div className="w-12 h-12 bg-black rounded-lg flex items-center justify-center shadow-lg group-hover:shadow-[#ff6a00]/50 transition-shadow p-2 border border-[#ff6a00]/20">
                       <Image 
-                        src="/claude.png" 
-                        alt="Claude" 
+                        src="/qwen-color.svg" 
+                        alt="Qwen" 
                         width={32} 
                         height={32}
                         className="w-full h-full object-contain"
                       />
                     </div>
                     <div className="text-left">
-                      <div className="text-lg font-bold text-[#CC785C]">Claude Sonnet 4.5</div>
+                      <div className="text-lg font-bold text-[#ff6a00]">Qwen Max</div>
                       <div className="text-xs text-slate-500">AI Analysis</div>
                     </div>
                   </div>
                   
                   <div className="text-2xl text-slate-600">×</div>
                   
-                  {/* Gemini */}
+                  {/* DeepSeek */}
                   <div className="inline-flex items-center gap-3 group hover:scale-110 transition-transform duration-300">
-                    <div className="w-12 h-12 bg-gradient-to-br from-[#4285F4] to-[#3367d6] rounded-lg flex items-center justify-center shadow-lg group-hover:shadow-[#4285F4]/50 transition-shadow p-2">
+                    <div className="w-12 h-12 bg-black rounded-lg flex items-center justify-center shadow-lg group-hover:shadow-[#1a73e8]/50 transition-shadow p-2 border border-[#1a73e8]/20">
                       <Image 
-                        src="/gemini.png" 
-                        alt="Gemini" 
+                        src="/deepseek-color.svg" 
+                        alt="DeepSeek" 
                         width={32} 
                         height={32}
                         className="w-full h-full object-contain"
                       />
                     </div>
                     <div className="text-left">
-                      <div className="text-lg font-bold text-[#4285F4]">Gemini 2.5 Pro</div>
+                      <div className="text-lg font-bold text-[#1a73e8]">DeepSeek Chat</div>
                       <div className="text-xs text-slate-500">AI Insights</div>
                     </div>
                   </div>
@@ -498,14 +498,15 @@ export default function LandingPage({ onEnter }: LandingPageProps) {
                   
                   <div className="text-2xl text-slate-600">×</div>
                   
+                  {/* AsterDEX - Duplicate */}
                   <div className="inline-flex items-center gap-3 group hover:scale-110 transition-transform duration-300">
                     <div className="w-12 h-12 bg-black rounded-lg flex items-center justify-center shadow-lg group-hover:shadow-[#f0b90b]/50 transition-shadow p-2 border border-[#f0b90b]/20">
                       <Image 
-                        src="/A101.png" 
-                        alt="A101" 
-                        width={48} 
-                        height={48}
-                        className="w-full h-full object-cover rounded-full"
+                        src="/asterdex-icon.png" 
+                        alt="AsterDEX" 
+                        width={32} 
+                        height={32}
+                        className="w-full h-full object-contain"
                       />
                     </div>
                     <div className="text-left">
@@ -516,38 +517,38 @@ export default function LandingPage({ onEnter }: LandingPageProps) {
                   
                   <div className="text-2xl text-slate-600">×</div>
                   
-                  {/* Claude - Duplicate */}
+                  {/* Qwen - Duplicate */}
                   <div className="inline-flex items-center gap-3 group hover:scale-110 transition-transform duration-300">
-                    <div className="w-12 h-12 bg-black rounded-lg flex items-center justify-center shadow-lg group-hover:shadow-[#CC785C]/50 transition-shadow p-2 border border-[#CC785C]/20">
+                    <div className="w-12 h-12 bg-black rounded-lg flex items-center justify-center shadow-lg group-hover:shadow-[#ff6a00]/50 transition-shadow p-2 border border-[#ff6a00]/20">
                       <Image 
-                        src="/claude.png" 
-                        alt="Claude" 
+                        src="/qwen-color.svg" 
+                        alt="Qwen" 
                         width={32} 
                         height={32}
                         className="w-full h-full object-contain"
                       />
                     </div>
                     <div className="text-left">
-                      <div className="text-lg font-bold text-[#CC785C]">Claude Sonnet 4.5</div>
+                      <div className="text-lg font-bold text-[#ff6a00]">Qwen Max</div>
                       <div className="text-xs text-slate-500">AI Analysis</div>
                     </div>
                   </div>
                   
                   <div className="text-2xl text-slate-600">×</div>
                   
-                  {/* Gemini - Duplicate */}
+                  {/* DeepSeek - Duplicate */}
                   <div className="inline-flex items-center gap-3 group hover:scale-110 transition-transform duration-300">
-                    <div className="w-12 h-12 bg-gradient-to-br from-[#4285F4] to-[#3367d6] rounded-lg flex items-center justify-center shadow-lg group-hover:shadow-[#4285F4]/50 transition-shadow p-2">
+                    <div className="w-12 h-12 bg-black rounded-lg flex items-center justify-center shadow-lg group-hover:shadow-[#1a73e8]/50 transition-shadow p-2 border border-[#1a73e8]/20">
                       <Image 
-                        src="/gemini.png" 
-                        alt="Gemini" 
+                        src="/deepseek-color.svg" 
+                        alt="DeepSeek" 
                         width={32} 
                         height={32}
                         className="w-full h-full object-contain"
                       />
                     </div>
                     <div className="text-left">
-                      <div className="text-lg font-bold text-[#4285F4]">Gemini 2.5 Pro</div>
+                      <div className="text-lg font-bold text-[#1a73e8]">DeepSeek Chat</div>
                       <div className="text-xs text-slate-500">AI Insights</div>
                     </div>
                   </div>
@@ -585,7 +586,7 @@ export default function LandingPage({ onEnter }: LandingPageProps) {
         <footer className="border-t border-[#2b3139] bg-[#181a20]/80 backdrop-blur-md py-6">
           <div className="container mx-auto px-4 text-center">
             <p className="text-sm text-slate-500">
-              Powered by OpenAI & AsterDEX API
+              © 2025 A101 AI Trader. Professional AI-Powered Crypto Trading Platform.
             </p>
           </div>
         </footer>

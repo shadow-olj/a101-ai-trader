@@ -66,6 +66,9 @@ export default function Home() {
   const loadBalance = async (keys?: ApiKeys | null) => {
     try {
       const keysToUse = keys !== undefined ? keys : apiKeys
+      console.log('[Balance] API Keys being sent:', keysToUse ? 'Keys present' : 'No keys')
+      console.log('[Balance] Keys structure:', keysToUse ? Object.keys(keysToUse) : 'null')
+      
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/balance`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -242,12 +245,16 @@ export default function Home() {
           <div className="flex items-center justify-between h-16">
             {/* Left - Logo & Title */}
             <div className="flex items-center gap-6">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center bg-white">
+              <div 
+                className="flex items-center gap-3 cursor-pointer group transition-all hover:opacity-80"
+                onClick={() => setShowLanding(true)}
+                title="Back to Home"
+              >
+                <div className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center bg-white group-hover:ring-2 group-hover:ring-[#f0b90b] transition-all">
                   <Image src="/A101.png" alt="A101" width={48} height={48} className="object-cover" />
                 </div>
                 <div>
-                  <h1 className="text-lg font-bold text-white tracking-tight">A101 AI Trader</h1>
+                  <h1 className="text-lg font-bold text-white tracking-tight group-hover:text-[#f0b90b] transition-colors">A101 AI Trader</h1>
                   <p className="text-xs text-slate-500">Powered by A101 Protocol</p>
                 </div>
               </div>

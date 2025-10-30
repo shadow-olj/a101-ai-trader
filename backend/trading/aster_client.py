@@ -1,6 +1,9 @@
 import hmac
 import hashlib
 import time
+from decimal import Decimal, ROUND_DOWN
+from urllib.parse import urlencode
+
 import requests
 from typing import Dict, List, Optional, Any, Union
 from enum import Enum
@@ -37,6 +40,8 @@ class AsterDEXClient:
         self.session.headers.update({"X-MBX-APIKEY": self.api_key})
         self.time_offset = 0  # Time offset between local and server
         self._sync_time()
+        self._exchange_info_cache: Optional[Dict[str, Any]] = None
+        self._symbol_filters_cache: Dict[str, Dict[str, Dict[str, Any]]] = {}
     
     def _sync_time(self):
         """Sync time with server to avoid timestamp errors"""
@@ -58,9 +63,9 @@ class AsterDEXClient:
     def _sign(self, params: Dict[str, Any]) -> str:
         """Generate signature for authenticated requests"""
         # Remove signature if present (shouldn't sign the signature itself)
-        params_to_sign = {k: v for k, v in params.items() if k != 'signature'}
-        # Sort parameters and create query string
-        query_string = '&'.join([f"{k}={v}" for k, v in sorted(params_to_sign.items())])
+        params_to_sign = [(k, v) for k, v in params.items() if k != 'signature']
+        # Preserve original ordering using urlencode on sequence
+        query_string = urlencode(params_to_sign, doseq=True)
         print(f"[DEBUG] Query string to sign: {query_string}")
         # Generate HMAC SHA256 signature
         signature = hmac.new(
@@ -70,6 +75,16 @@ class AsterDEXClient:
         ).hexdigest()
         print(f"[DEBUG] Generated signature: {signature}")
         return signature
+
+    @staticmethod
+    def _format_decimal(value: Union[float, Decimal], precision: int = 8) -> str:
+        """Format numeric values to avoid scientific notation and trim trailing zeros"""
+        quantize_str = f"1.{'0' * precision}"
+        decimal_value = Decimal(str(value)).quantize(Decimal(quantize_str), rounding=ROUND_DOWN)
+        normalized = decimal_value.normalize()
+        # Ensure values like 1. are represented without trailing dot
+        return format(normalized, 'f') if normalized != normalized.to_integral() else str(normalized.to_integral())
+
     
     def _request(self, method: str, endpoint: str, signed: bool = False, **kwargs) -> Dict:
         """Make HTTP request to AsterDEX API"""
@@ -100,6 +115,56 @@ class AsterDEXClient:
                 pass
             raise Exception(f"API request failed: {error_detail}")
     
+    def _get_symbol_filters(self, symbol: str) -> Dict[str, Dict[str, Any]]:
+        """Fetch and cache filters for a trading symbol"""
+        if symbol not in self._symbol_filters_cache:
+            if not self._exchange_info_cache:
+                self._exchange_info_cache = self.get_exchange_info()
+            symbols = self._exchange_info_cache.get('symbols', [])
+            for sym in symbols:
+                if sym.get('symbol') == symbol:
+                    filters = {f['filterType']: f for f in sym.get('filters', [])}
+                    self._symbol_filters_cache[symbol] = filters
+                    break
+        return self._symbol_filters_cache.get(symbol, {})
+
+    def prepare_quantity(self, symbol: str, price: Decimal, quantity: Decimal) -> (Optional[str], Optional[str]):
+        """Adjust quantity to meet exchange filters. Returns (formatted_qty, error_message)"""
+        filters = self._get_symbol_filters(symbol)
+        adjusted_qty = quantity
+
+        lot_filter = filters.get('LOT_SIZE')
+        if lot_filter:
+            step = Decimal(lot_filter.get('stepSize', '0.000001'))
+            min_qty = Decimal(lot_filter.get('minQty', '0'))
+            max_qty = Decimal(lot_filter.get('maxQty', '99999999'))
+            if step > 0:
+                steps = (adjusted_qty / step).to_integral_value(rounding=ROUND_DOWN)
+                adjusted_qty = steps * step
+            adjusted_qty = adjusted_qty.quantize(step, rounding=ROUND_DOWN)
+            if adjusted_qty < min_qty:
+                return None, (
+                    f"Order amount too small. Minimum quantity for {symbol} is "
+                    f"{self._format_decimal(min_qty)} ({symbol})."
+                )
+            if adjusted_qty > max_qty:
+                return None, (
+                    f"Order quantity exceeds maximum allowed for {symbol} "
+                    f"({self._format_decimal(max_qty)})."
+                )
+
+        notional_filter = filters.get('MIN_NOTIONAL') or filters.get('NOTIONAL')
+        if notional_filter:
+            min_notional = Decimal(notional_filter.get('notional') or notional_filter.get('minNotional') or '0')
+            notional = adjusted_qty * price
+            if min_notional > 0 and notional < min_notional:
+                return None, (
+                    f"Order value ${float(notional):.2f} is below the minimum ${float(min_notional):.2f} "
+                    f"required for {symbol}. Increase the amount."
+                )
+
+        return self._format_decimal(adjusted_qty), None
+
     # Market Data Endpoints
     
     def get_server_time(self) -> Dict:
@@ -177,14 +242,18 @@ class AsterDEXClient:
             "side": side.value,
             "type": order_type.value,
             "positionSide": position_side.value,
-            "timeInForce": time_in_force,
-            "reduceOnly": str(reduce_only).lower()
         }
+
+        if order_type != OrderType.MARKET:
+            params["timeInForce"] = time_in_force
+
+        if reduce_only:
+            params["reduceOnly"] = "true"
         
-        if quantity:
-            params["quantity"] = quantity
-        if price:
-            params["price"] = price
+        if quantity is not None:
+            params["quantity"] = quantity if isinstance(quantity, str) else self._format_decimal(quantity)
+        if price is not None:
+            params["price"] = price if isinstance(price, str) else self._format_decimal(price)
         
         params.update(kwargs)
         

@@ -60,6 +60,25 @@ code {
   background: hsl(var(--primary) / 0.5);
 }
 
+/* Yellow scrollbar for modal */
+.scrollbar-yellow::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-yellow::-webkit-scrollbar-track {
+  background: #2b3139;
+  border-radius: 3px;
+}
+
+.scrollbar-yellow::-webkit-scrollbar-thumb {
+  background: #f0b90b;
+  border-radius: 3px;
+}
+
+.scrollbar-yellow::-webkit-scrollbar-thumb:hover {
+  background: #f8d12f;
+}
+
 /* Floating Circle Animations */
 @keyframes float {
   0%, 100% {

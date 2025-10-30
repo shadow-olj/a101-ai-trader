@@ -19,6 +19,28 @@ interface PredictionData {
     sentiment: string
   }
   lastUpdated: string
+  technicalIndicators?: {
+    rsi: number
+    macd: { macd: number; signal: number; histogram: number }
+    ema_20: number
+    ema_50: number
+    bollinger: { upper: number; middle: number; lower: number }
+    signals: string[]
+  }
+  tradingSignals?: {
+    recommendation: string
+    entry_price: number
+    stop_loss: number
+    take_profit: number
+    position_size: number
+    risk_reward_ratio: number
+  }
+  historicalAccuracy?: {
+    total_predictions: number
+    accuracy: number
+    bullish_accuracy: number
+    bearish_accuracy: number
+  }
 }
 
 interface AIPredictionCardProps {
@@ -34,6 +56,8 @@ const SUPPORTED_SYMBOLS = [
 
 const AI_MODELS = [
   { id: 'gpt-5', name: 'GPT-5', provider: 'OpenAI', color: '#10a37f', iconType: 'openai', enabled: true },
+  { id: 'deepseek-chat', name: 'DeepSeek Chat', provider: 'DeepSeek AI', color: '#1a73e8', iconType: 'deepseek', enabled: true },
+  { id: 'qwen-max', name: 'Qwen Max', provider: 'Alibaba Cloud', color: '#ff6a00', iconType: 'qwen', enabled: true },
   { id: 'claude-sonnet-4.5', name: 'Claude Sonnet 4.5', provider: 'Anthropic', color: '#d97757', iconType: 'claude', enabled: false },
   { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', provider: 'Google', color: '#4285f4', iconType: 'gemini', enabled: false },
 ]
@@ -65,6 +89,28 @@ const AIModelIcon = ({ type, size = 20 }: { type: string, size?: number }) => {
         <Image 
           src="/gemini.png" 
           alt="Gemini" 
+          width={size} 
+          height={size}
+          className="object-contain"
+        />
+      )
+    case 'qwen':
+      // Alibaba Qwen logo
+      return (
+        <Image 
+          src="/qwen-color.svg" 
+          alt="Qwen" 
+          width={size} 
+          height={size}
+          className="object-contain"
+        />
+      )
+    case 'deepseek':
+      // DeepSeek logo
+      return (
+        <Image 
+          src="/deepseek-color.svg" 
+          alt="DeepSeek" 
           width={size} 
           height={size}
           className="object-contain"
@@ -105,7 +151,7 @@ export default function AIPredictionCard({ onRequestPrediction }: AIPredictionCa
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           symbol: selectedSymbol,
-          model: selectedModel === 'gpt-5' ? 'gpt-3.5-turbo' : 'gpt-3.5-turbo', // Map to actual model
+          model: selectedModel, // Pass the selected model ID directly
           api_keys: apiKeys
         })
       })
@@ -133,7 +179,10 @@ export default function AIPredictionCard({ onRequestPrediction }: AIPredictionCa
           technical: data.signals.technical,
           sentiment: data.signals.sentiment
         },
-        lastUpdated: new Date().toLocaleTimeString()
+        lastUpdated: new Date().toLocaleTimeString(),
+        technicalIndicators: data.technical_indicators,
+        tradingSignals: data.trading_signals,
+        historicalAccuracy: data.historical_accuracy
       }
       
       setPrediction(predictionData)
@@ -367,6 +416,126 @@ export default function AIPredictionCard({ onRequestPrediction }: AIPredictionCa
                 </div>
               </div>
             </div>
+
+            {/* Technical Indicators */}
+            {prediction.technicalIndicators && (
+              <div className="bg-[#2b3139]/40 rounded-xl p-4 border border-[#474d57]">
+                <div className="text-xs font-semibold text-slate-300 mb-3 flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 bg-[#10a37f] rounded-full"></div>
+                  Technical Indicators
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-[#1e2329] rounded-lg p-3">
+                    <div className="text-xs text-slate-500 mb-1">RSI (14)</div>
+                    <div className={`text-sm font-bold ${
+                      prediction.technicalIndicators.rsi < 30 ? 'text-[#0ecb81]' :
+                      prediction.technicalIndicators.rsi > 70 ? 'text-[#f6465d]' :
+                      'text-slate-300'
+                    }`}>
+                      {prediction.technicalIndicators.rsi.toFixed(1)}
+                    </div>
+                  </div>
+                  <div className="bg-[#1e2329] rounded-lg p-3">
+                    <div className="text-xs text-slate-500 mb-1">MACD</div>
+                    <div className={`text-sm font-bold ${
+                      prediction.technicalIndicators.macd.histogram > 0 ? 'text-[#0ecb81]' : 'text-[#f6465d]'
+                    }`}>
+                      {prediction.technicalIndicators.macd.macd.toFixed(2)}
+                    </div>
+                  </div>
+                  <div className="bg-[#1e2329] rounded-lg p-3">
+                    <div className="text-xs text-slate-500 mb-1">EMA 20</div>
+                    <div className="text-sm font-bold text-slate-300">
+                      ${prediction.technicalIndicators.ema_20.toFixed(2)}
+                    </div>
+                  </div>
+                  <div className="bg-[#1e2329] rounded-lg p-3">
+                    <div className="text-xs text-slate-500 mb-1">EMA 50</div>
+                    <div className="text-sm font-bold text-slate-300">
+                      ${prediction.technicalIndicators.ema_50.toFixed(2)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Trading Signals */}
+            {prediction.tradingSignals && (
+              <div className="bg-gradient-to-br from-[#f0b90b]/10 to-transparent rounded-xl p-4 border border-[#f0b90b]/30">
+                <div className="text-xs font-semibold text-[#f0b90b] mb-3 flex items-center gap-2">
+                  <Zap className="w-4 h-4" />
+                  Trading Recommendation
+                </div>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-slate-400">Action:</span>
+                    <span className={`text-sm font-bold uppercase ${
+                      prediction.tradingSignals.recommendation === 'buy' ? 'text-[#0ecb81]' :
+                      prediction.tradingSignals.recommendation === 'sell' ? 'text-[#f6465d]' :
+                      'text-slate-300'
+                    }`}>
+                      {prediction.tradingSignals.recommendation}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <div className="text-xs text-slate-500 mb-1">Entry Price</div>
+                      <div className="text-sm font-bold text-white">
+                        ${prediction.tradingSignals.entry_price.toFixed(2)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-slate-500 mb-1">Position Size</div>
+                      <div className="text-sm font-bold text-white">
+                        {prediction.tradingSignals.position_size}%
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-[#f6465d] mb-1">Stop Loss</div>
+                      <div className="text-sm font-bold text-[#f6465d]">
+                        ${prediction.tradingSignals.stop_loss.toFixed(2)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-[#0ecb81] mb-1">Take Profit</div>
+                      <div className="text-sm font-bold text-[#0ecb81]">
+                        ${prediction.tradingSignals.take_profit.toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-[#2b3139]/50 rounded-lg p-2 flex items-center justify-between">
+                    <span className="text-xs text-slate-400">Risk/Reward Ratio:</span>
+                    <span className="text-sm font-bold text-[#f0b90b]">
+                      1:{prediction.tradingSignals.risk_reward_ratio.toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Historical Accuracy */}
+            {prediction.historicalAccuracy && prediction.historicalAccuracy.total_predictions > 0 && (
+              <div className="bg-[#2b3139]/40 rounded-xl p-4 border border-[#474d57]">
+                <div className="text-xs font-semibold text-slate-300 mb-3 flex items-center gap-2">
+                  <Brain className="w-4 h-4" />
+                  Historical Performance
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-[#1e2329] rounded-lg p-3">
+                    <div className="text-xs text-slate-500 mb-1">Overall Accuracy</div>
+                    <div className="text-lg font-bold text-[#0ecb81]">
+                      {prediction.historicalAccuracy.accuracy.toFixed(1)}%
+                    </div>
+                  </div>
+                  <div className="bg-[#1e2329] rounded-lg p-3">
+                    <div className="text-xs text-slate-500 mb-1">Total Predictions</div>
+                    <div className="text-lg font-bold text-slate-300">
+                      {prediction.historicalAccuracy.total_predictions}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Technical Signals */}
             <div className="bg-[#2b3139]/40 rounded-xl p-4 border border-[#474d57]">

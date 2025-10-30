@@ -1,12 +1,15 @@
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
+from decimal import Decimal
 import os
 import sys
 import logging
 import json
 from dotenv import load_dotenv
+from analysis.technical_indicators import analyze_technical_indicators
+from analysis.prediction_history import PredictionHistory
 
 # Configure logging - console only, no file output
 logging.basicConfig(
@@ -150,6 +153,8 @@ class ApiKeysModel(BaseModel):
     aster_api_key: str
     aster_api_secret: str
     openai_api_key: Optional[str] = None
+    qwen_api_key: Optional[str] = None
+    deepseek_api_key: Optional[str] = None
 
 
 class CommandRequest(BaseModel):
@@ -434,8 +439,15 @@ async def handle_open_position(
     
     # Calculate quantity (simplified - should use proper calculation)
     ticker = client.get_ticker_price(intent.symbol)
-    price = float(ticker['price'])
-    quantity = intent.amount / price
+    price = Decimal(str(ticker['price']))
+    raw_quantity = Decimal(str(intent.amount)) / price
+    formatted_quantity, quantity_error = client.prepare_quantity(intent.symbol, price, raw_quantity)
+    if quantity_error:
+        return CommandResponse(
+            success=False,
+            message=quantity_error,
+            intent=intent.dict()
+        )
     
     # Place order
     try:
@@ -445,7 +457,7 @@ async def handle_open_position(
             symbol=intent.symbol,
             side=side,
             order_type=OrderType.MARKET,
-            quantity=quantity,
+            quantity=formatted_quantity,
             position_side=PositionSide.BOTH
         )
         
@@ -455,7 +467,7 @@ async def handle_open_position(
         action_name = "Long" if intent.action == "open_long" else "Short"
         message = f"✅ {action_name} position opened for {intent.symbol}\n"
         message += f"Amount: ${intent.amount:,.2f}\n"
-        message += f"Quantity: {quantity:.6f}\n"
+        message += f"Quantity: {formatted_quantity}\n"
         if intent.leverage:
             message += f"Leverage: {intent.leverage}x\n"
         message += f"Order ID: {result.get('orderId')}"
@@ -584,10 +596,19 @@ class BalanceRequest(BaseModel):
 @app.post("/api/balance", response_model=BalanceResponse)
 async def get_balance(request: BalanceRequest):
     """Get account balance"""
+    import sys
+    print(f"[DEBUG Balance] Request received, api_keys present: {request.api_keys is not None}", flush=True)
+    if request.api_keys:
+        print(f"[DEBUG Balance] API Key (first 10 chars): {request.api_keys.aster_api_key[:10]}...", flush=True)
+        print(f"[DEBUG Balance] API Secret (first 10 chars): {request.api_keys.aster_api_secret[:10]}...", flush=True)
+    sys.stdout.flush()
+    
     # Create client with user-provided keys or defaults
     if request.api_keys:
         client = AsterDEXClient(request.api_keys.aster_api_key, request.api_keys.aster_api_secret)
     else:
+        print("[DEBUG Balance] Using default keys from environment", flush=True)
+        sys.stdout.flush()
         client = get_aster_client()
     try:
         import sys
@@ -639,78 +660,202 @@ class PredictionResponse(BaseModel):
     signals: Dict[str, Any]
     analysis: str
     timeframe: str = "24h"
+    technical_indicators: Optional[Dict[str, Any]] = None
+    trading_signals: Optional[Dict[str, Any]] = None
+    historical_accuracy: Optional[Dict[str, Any]] = None
 
 
 @app.post("/api/predict", response_model=PredictionResponse)
 async def predict_market(request: PredictionRequest):
-    """AI-powered market prediction using OpenAI"""
+    """AI-powered market prediction using multiple AI models"""
     try:
-        # Get OpenAI API key
-        openai_key = request.api_keys.openai_api_key if request.api_keys else os.getenv("OPENAI_API_KEY")
+        # Determine which AI model to use and get API key
+        model_id = request.model
+        api_key = None
+        model_provider = "OpenAI"
         
-        if not openai_key or openai_key.startswith("your_"):
+        if model_id.startswith("qwen"):
+            api_key = request.api_keys.qwen_api_key if request.api_keys else os.getenv("QWEN_API_KEY")
+            model_provider = "Qwen"
+        elif model_id.startswith("deepseek"):
+            api_key = request.api_keys.deepseek_api_key if request.api_keys else os.getenv("DEEPSEEK_API_KEY")
+            model_provider = "DeepSeek"
+        else:
+            # Default to OpenAI (GPT, Claude, Gemini)
+            api_key = request.api_keys.openai_api_key if request.api_keys else os.getenv("OPENAI_API_KEY")
+            model_provider = "OpenAI"
+        
+        if not api_key or api_key.startswith("your_"):
             return PredictionResponse(
                 success=False,
                 prediction="neutral",
                 confidence=0.0,
                 price_target={"current": 0, "high": 0, "low": 0},
                 signals={"technical": [], "sentiment": ""},
-                analysis="OpenAI API key not configured",
+                analysis=f"{model_provider} API key not configured. Please add your API key in Settings.",
                 timeframe="24h"
             )
         
-        # Get current price from AsterDEX
+        # Initialize prediction history
+        pred_history = PredictionHistory()
+        
+        # Get market data from AsterDEX
         try:
             if request.api_keys:
                 client = AsterDEXClient(request.api_keys.aster_api_key, request.api_keys.aster_api_secret)
             else:
                 client = get_aster_client()
             
+            # Get current price
+            logger.info(f"[Prediction] Fetching ticker price for {request.symbol}")
             ticker = client.get_ticker_price(request.symbol)
             current_price = float(ticker.get('price', 0))
-        except:
-            # Fallback prices if API fails
-            price_map = {
-                'BTCUSDT': 67234.50,
-                'ETHUSDT': 3456.78,
-                'BNBUSDT': 612.34,
-                'SOLUSDT': 145.67
-            }
-            current_price = price_map.get(request.symbol, 1000.0)
+            logger.info(f"[Prediction] Current price: ${current_price}")
+            
+            if current_price == 0:
+                raise ValueError("Invalid price received from API")
+            
+            # Get K-line data for technical analysis
+            try:
+                # 1-hour K-lines (last 100 candles)
+                klines_raw = client.get_klines(request.symbol, "1h", limit=100)
+                
+                # Convert K-line data to dictionary format
+                # AsterDEX returns: [timestamp, open, high, low, close, volume, ...]
+                klines_1h = []
+                for kline in klines_raw:
+                    if isinstance(kline, list) and len(kline) >= 6:
+                        klines_1h.append({
+                            'timestamp': kline[0],
+                            'open': kline[1],
+                            'high': kline[2],
+                            'low': kline[3],
+                            'close': kline[4],
+                            'volume': kline[5]
+                        })
+                
+                if not klines_1h:
+                    raise ValueError("No K-line data available")
+                
+                # Calculate technical indicators
+                tech_indicators = analyze_technical_indicators(klines_1h)
+                
+                logger.info(f"[Prediction] Technical indicators calculated: RSI={tech_indicators['rsi']}, MACD={tech_indicators['macd']}")
+            except Exception as kline_error:
+                logger.warning(f"[Prediction] Failed to get K-line data, using basic analysis: {str(kline_error)}")
+                # Use basic indicators without K-line data
+                tech_indicators = {
+                    "rsi": 50.0,
+                    "macd": {"macd": 0.0, "signal": 0.0, "histogram": 0.0},
+                    "ema_20": current_price,
+                    "ema_50": current_price,
+                    "bollinger": {"upper": current_price * 1.02, "middle": current_price, "lower": current_price * 0.98},
+                    "current_price": current_price,
+                    "signals": ["Limited data - Using current price only"],
+                    "volume_avg": 0
+                }
+                
+        except Exception as e:
+            logger.error(f"[Prediction] Failed to fetch market data for {request.symbol}: {str(e)}")
+            return PredictionResponse(
+                success=False,
+                prediction="neutral",
+                confidence=0.0,
+                price_target={"current": 0, "high": 0, "low": 0},
+                signals={"technical": [], "sentiment": ""},
+                analysis=f"Unable to fetch market data for {request.symbol}. Please check your API keys and try again.",
+                timeframe="24h"
+            )
         
-        # Create OpenAI client
+        # Get historical prediction feedback
+        historical_feedback = pred_history.get_feedback_prompt(request.symbol, days=7)
+        historical_accuracy = pred_history.calculate_accuracy(request.symbol, days=7)
+        
+        # Import OpenAI for later use
         from openai import OpenAI
-        openai_client = OpenAI(api_key=openai_key)
         
-        # Prepare prompt for market analysis
-        prompt = f"""Analyze the cryptocurrency market for {request.symbol} and provide a trading prediction.
+        # Prepare enhanced prompt with technical indicators and historical feedback
+        prompt = f"""Analyze the cryptocurrency market for {request.symbol} and provide a comprehensive trading prediction.
 
-Current Price: ${current_price}
+📊 Current Market Data:
+- Symbol: {request.symbol}
+- Current Price: ${current_price}
+- Timeframe: 24 hours
 
-Please provide:
+📈 Technical Indicators:
+- RSI (14): {tech_indicators['rsi']} {'(Oversold)' if tech_indicators['rsi'] < 30 else '(Overbought)' if tech_indicators['rsi'] > 70 else '(Neutral)'}
+- MACD: {tech_indicators['macd']['macd']} (Signal: {tech_indicators['macd']['signal']}, Histogram: {tech_indicators['macd']['histogram']})
+- EMA 20: ${tech_indicators['ema_20']}
+- EMA 50: ${tech_indicators['ema_50']}
+- Bollinger Bands: Upper ${tech_indicators['bollinger']['upper']}, Middle ${tech_indicators['bollinger']['middle']}, Lower ${tech_indicators['bollinger']['lower']}
+- Average Volume: {tech_indicators['volume_avg']}
+
+🔍 Technical Signals:
+{chr(10).join('- ' + signal for signal in tech_indicators['signals'])}
+
+{historical_feedback}
+
+Based on the above data, provide:
 1. Market trend prediction (bullish/bearish/neutral)
 2. Confidence level (0-100%)
 3. Price targets for next 24h (high and low)
-4. Key technical signals (3-5 points)
-5. Market sentiment summary
+4. Specific trading recommendation (buy/sell/hold)
+5. Entry price suggestion
+6. Stop-loss level (risk management)
+7. Take-profit level (minimum 1:2 risk-reward ratio)
+8. Position size recommendation (% of portfolio)
+9. Key reasoning points
 
-Respond in JSON format:
+IMPORTANT: Respond with ONLY a valid JSON object, no markdown, no explanations, no code blocks.
+
+JSON format:
 {{
   "prediction": "bullish|bearish|neutral",
   "confidence": 85,
   "price_high": 68000,
   "price_low": 66000,
+  "recommendation": "buy|sell|hold",
+  "entry_price": 67000,
+  "stop_loss": 65000,
+  "take_profit": 71000,
+  "position_size": 5,
   "technical_signals": ["Signal 1", "Signal 2", "Signal 3"],
   "sentiment": "Brief market sentiment summary",
-  "analysis": "Detailed analysis explanation"
+  "analysis": "Detailed analysis explanation with reasoning"
 }}"""
         
-        logger.info(f"[Prediction] Requesting analysis for {request.symbol} using {request.model}")
+        logger.info(f"[Prediction] Requesting analysis for {request.symbol} using {model_provider} ({request.model})")
         
-        # Call OpenAI API
-        response = openai_client.chat.completions.create(
-            model=request.model,
-            messages=[
+        # Call AI API based on model provider
+        if model_provider == "Qwen":
+            # Qwen uses OpenAI-compatible API
+            openai_client = OpenAI(
+                api_key=api_key,
+                base_url="https://dashscope.aliyuncs.com/compatible-mode/v1"
+            )
+            actual_model = "qwen-max"
+        elif model_provider == "DeepSeek":
+            # DeepSeek uses OpenAI-compatible API
+            openai_client = OpenAI(
+                api_key=api_key,
+                base_url="https://api.deepseek.com"
+            )
+            actual_model = "deepseek-chat"
+        else:
+            # OpenAI and others
+            openai_client = OpenAI(api_key=api_key)
+            # Map model IDs to actual OpenAI model names
+            model_mapping = {
+                "gpt-5": "gpt-4-turbo-preview",  # GPT-5 may not be released yet, use GPT-4 Turbo
+                "claude-sonnet-4.5": "gpt-4-turbo-preview",
+                "gemini-2.5-pro": "gpt-4-turbo-preview"
+            }
+            actual_model = model_mapping.get(request.model, request.model)
+        
+        # Prepare API call parameters
+        api_params = {
+            "model": actual_model,
+            "messages": [
                 {
                     "role": "system",
                     "content": "You are a professional cryptocurrency market analyst. Provide accurate, data-driven predictions based on technical analysis principles."
@@ -719,31 +864,96 @@ Respond in JSON format:
                     "role": "user",
                     "content": prompt
                 }
-            ],
-            temperature=0.7,
-            response_format={"type": "json_object"}
-        )
+            ]
+        }
+        
+        # Add temperature only for models that support it (not o1 series)
+        if actual_model not in ["o1-preview", "o1-mini"]:
+            api_params["temperature"] = 0.7
+        
+        # Add response_format for OpenAI models that support it
+        if model_provider == "OpenAI" and actual_model not in ["o1-preview", "o1-mini"]:
+            api_params["response_format"] = {"type": "json_object"}
+        
+        # Call AI API with timeout
+        logger.info(f"[Prediction] Calling {model_provider} API with model {actual_model}...")
+        import time
+        start_time = time.time()
+        
+        try:
+            response = openai_client.chat.completions.create(**api_params, timeout=60.0)
+            elapsed_time = time.time() - start_time
+            logger.info(f"[Prediction] API call completed in {elapsed_time:.2f} seconds")
+        except Exception as api_error:
+            logger.error(f"[Prediction] API call failed: {str(api_error)}")
+            raise
         
         # Parse response
-        result = json.loads(response.choices[0].message.content)
+        response_content = response.choices[0].message.content
+        logger.info(f"[Prediction] Raw response from {model_provider}: {response_content[:200]}...")
+        
+        try:
+            # Try to parse as JSON
+            result = json.loads(response_content)
+        except json.JSONDecodeError as e:
+            logger.error(f"[Prediction] Failed to parse JSON response: {e}")
+            logger.error(f"[Prediction] Response content: {response_content}")
+            
+            # Try to extract JSON from markdown code blocks
+            import re
+            json_match = re.search(r'```json\s*(.*?)\s*```', response_content, re.DOTALL)
+            if json_match:
+                try:
+                    result = json.loads(json_match.group(1))
+                    logger.info(f"[Prediction] Successfully extracted JSON from markdown")
+                except:
+                    raise ValueError(f"Could not parse response as JSON. Response: {response_content[:500]}")
+            else:
+                raise ValueError(f"Could not parse response as JSON. Response: {response_content[:500]}")
         
         logger.info(f"[Prediction] Analysis complete: {result.get('prediction')} with {result.get('confidence')}% confidence")
         
-        return PredictionResponse(
-            success=True,
-            prediction=result.get('prediction', 'neutral'),
-            confidence=result.get('confidence', 50) / 100,
-            price_target={
+        # Prepare trading signals
+        trading_signals = {
+            "recommendation": result.get('recommendation', 'hold'),
+            "entry_price": result.get('entry_price', current_price),
+            "stop_loss": result.get('stop_loss', current_price * 0.95),
+            "take_profit": result.get('take_profit', current_price * 1.10),
+            "position_size": result.get('position_size', 5),
+            "risk_reward_ratio": round((result.get('take_profit', current_price * 1.10) - result.get('entry_price', current_price)) / 
+                                      (result.get('entry_price', current_price) - result.get('stop_loss', current_price * 0.95)), 2) if result.get('entry_price', current_price) != result.get('stop_loss', current_price * 0.95) else 0
+        }
+        
+        # Create prediction response
+        prediction_data = {
+            "prediction": result.get('prediction', 'neutral'),
+            "confidence": result.get('confidence', 50) / 100,
+            "price_target": {
                 "current": current_price,
                 "high": result.get('price_high', current_price * 1.05),
                 "low": result.get('price_low', current_price * 0.95)
             },
-            signals={
+            "signals": {
                 "technical": result.get('technical_signals', []),
                 "sentiment": result.get('sentiment', 'Market analysis in progress')
             },
-            analysis=result.get('analysis', 'Analysis completed'),
-            timeframe="24h"
+            "analysis": result.get('analysis', 'Analysis completed')
+        }
+        
+        # Save prediction to history
+        pred_history.save_prediction(request.symbol, prediction_data)
+        
+        return PredictionResponse(
+            success=True,
+            prediction=prediction_data['prediction'],
+            confidence=prediction_data['confidence'],
+            price_target=prediction_data['price_target'],
+            signals=prediction_data['signals'],
+            analysis=prediction_data['analysis'],
+            timeframe="24h",
+            technical_indicators=tech_indicators,
+            trading_signals=trading_signals,
+            historical_accuracy=historical_accuracy
         )
         
     except Exception as e:
