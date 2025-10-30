@@ -263,7 +263,7 @@ EXPOSE 3000
 CMD ["npm", "start"]
 ```
 
-### 创建 docker-compose.yml
+### creat docker-compose.yml
 
 ```yaml
 version: '3.8'

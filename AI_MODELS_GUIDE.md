@@ -61,52 +61,42 @@ The A101 AI Trader now supports **5 AI models** for market prediction:
 5. **Cost**: ~$0.01-0.03 per prediction
 
 ### Qwen (Alibaba Cloud)
-#### 方式一：国际版（推荐）
+#### Option 1: Alibaba Cloud International (Recommended)
 
-1. 访问 Alibaba Cloud (国际版)
-https://www.alibabacloud.com/
+1. Visit the international site: https://www.alibabacloud.com/
+2. Create an account
+- Click **Free Account** in the top-right corner
+- Sign up with email or phone number
+- International credit cards are accepted
+3. Enable DashScope service
+- Visit https://www.alibabacloud.com/product/dashscope
+- Search for "Model Studio" / "DashScope" if needed
+- Click **Try for Free** or **Get Started**
+4. Create an API Key in the DashScope console
+5. Obtain free quota
+- New accounts include a complimentary trial allowance
+- Pricing ranges from ~$0.001-0.007 per call
 
-2. 注册账号
-- 点击右上角 "Free Account"
-- 可以使用邮箱或手机注册
-- 支持国际信用卡
+**International advantages**:
+- ✅ Supports international credit cards
+- ✅ English interface
+- ✅ No China phone number required
+- ✅ Stable global connectivity
 
-3. 开通 DashScope 服务
-- 访问：https://www.alibabacloud.com/product/dashscope
-- 或搜索 "Model Studio" / "DashScope"
-- 点击 "Try for Free" 或 "Get Started"
+#### Option 2: Mainland China (China phone required)
 
-4. 创建 API Key
-- 进入控制台：https://bailian.console.aliyun.com/
-- 找到 "API Keys" 或 "Access Keys"
-- 点击 "Create API Key"
-- 复制生成的 Key（格式：`sk-...`）
+1. Visit DashScope portal: https://dashscope.aliyuncs.com/
 
-5. 获取免费额度
-- 新用户有免费试用额度
-- 价格：约 $0.001-0.007/次调用
+2. Register / Sign In
+- Log in with an Alibaba Cloud account
+- China phone number verification required
+- Real-name verification may be necessary
 
-**国际版优势**：
-- ✅ 支持国际信用卡
-- ✅ 英文界面
-- ✅ 无需中国手机号
-- ✅ 更稳定的国际访问
+3. Create API Key
+- Console: https://dashscope.console.aliyun.com/
+- API Key management: https://dashscope.console.aliyun.com/apiKey
 
-#### 方式二：中国版（需要中国手机号）
-
-1. 访问阿里云 DashScope
-https://dashscope.aliyuncs.com/
-
-2. 注册/登录
-- 使用阿里云账号登录
-- 需要中国手机号验证
-- 可能需要实名认证
-
-3. 创建 API Key
-- 控制台：https://dashscope.console.aliyun.com/
-- API Key 管理：https://dashscope.console.aliyun.com/apiKey
-
-**注意**：中国版和国际版的 API Key 不通用！
+**Note**: International and Mainland DashScope API keys are not interchangeable.
 
 ### DeepSeek
 1. Visit: https://platform.deepseek.com/
